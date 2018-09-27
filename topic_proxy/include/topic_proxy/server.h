@@ -51,6 +51,12 @@ public:
     publish_message_server_ = nh_.advertiseService(g_publish_message_service, &Server::handlePublishMessage, this);
   }
 
+  Server(const ros::NodeHandle& nh) : nh_(nh)
+  {
+    get_message_server_     = nh_.advertiseService(g_get_message_service, &Server::handleGetMessage, this);
+    publish_message_server_ = nh_.advertiseService(g_publish_message_service, &Server::handlePublishMessage, this);
+  }
+
   ~Server()
   {
     clearSubscriptions();
