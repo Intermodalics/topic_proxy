@@ -1,0 +1,3 @@
+[submodule "third_party/cosp-android-bzip2"]
+	path = third_party/cosp-android-bzip2
+	url = git@github.com:Intermodalics/cosp-android-bzip2.git
