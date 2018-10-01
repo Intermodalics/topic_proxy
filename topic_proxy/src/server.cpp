@@ -12,7 +12,7 @@ int main(int argc, char **argv)
   argv = new_argv.data();
 
   ros::init(argc, argv, "topic_proxy_server");
-  topic_proxy::Server server;
+  topic_proxy::Server server(ros::NodeHandle());
   ROS_INFO("Created topic_proxy server listening on %s:%u", server.getHost().c_str(), server.getTCPPort());
   ros::spin();
   return 0;

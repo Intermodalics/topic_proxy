@@ -45,15 +45,15 @@ private:
   std::map<std::string, PublicationInfoPtr> publications_;
 
 public:
-  Server()
+  /*Server()
   {
     get_message_server_     = nh_.advertiseService(g_get_message_service, &Server::handleGetMessage, this);
     publish_message_server_ = nh_.advertiseService(g_publish_message_service, &Server::handlePublishMessage, this);
-  }
+  }*/
 
   Server(const ros::NodeHandle& nh) : nh_(nh)
   {
-    get_message_server_     = nh_.advertiseService(g_get_message_service, &Server::handleGetMessage, this);
+    get_message_server_     = nh_.advertiseService<GetMessage::Request, GetMessage::Response>(g_get_message_service, boost::bind(&Server::handleGetMessage, this, _1, _2));
     publish_message_server_ = nh_.advertiseService(g_publish_message_service, &Server::handlePublishMessage, this);
   }
 
