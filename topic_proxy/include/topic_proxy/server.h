@@ -13,6 +13,28 @@
 
 #include <blob/shape_shifter.h>
 
+#include <android/log.h>
+
+#define LOG_NAME "topic_proxy_server"
+
+#ifndef LOGI
+#define LOGI(LOG_NAME, ...) \
+  __android_log_print(ANDROID_LOG_INFO, LOG_NAME, __VA_ARGS__)
+#endif  // LOGI
+
+#ifndef LOGE
+#define LOGE(LOG_NAME, ...) \
+  __android_log_print(ANDROID_LOG_ERROR, LOG_NAME, __VA_ARGS__)
+#endif  // LOGE
+
+#ifndef CHECK
+#define CHECK(condition)                                                            \
+  if (!(condition)) {                                                               \
+    LOGE("CHECK", "*** CHECK FAILED at %s:%d: %s", __FILE__, __LINE__, #condition); \
+    abort();                                                                        \
+  }
+#endif  // CHECK
+
 namespace topic_proxy
 {
 
@@ -53,6 +75,7 @@ public:
 
   Server(const ros::NodeHandle& nh) : nh_(nh)
   {
+    LOGI(LOG_NAME, "Server constructor");
     get_message_server_     = nh_.advertiseService<GetMessage::Request, GetMessage::Response>(g_get_message_service, boost::bind(&Server::handleGetMessage, this, _1, _2));
     publish_message_server_ = nh_.advertiseService(g_publish_message_service, &Server::handlePublishMessage, this);
   }
@@ -90,16 +113,19 @@ protected:
 
   bool handleGetMessage(GetMessage::Request& request, GetMessage::Response& response)
   {
+    LOGI(LOG_NAME, "handleGetMessage callback");
     SubscriptionInfoPtr subscription = getSubscription(request.topic);
+    LOGI(LOG_NAME, "handleGetMessage callback: got subscription");
 
     if (!subscription->subscriber) {
-      ROS_INFO("Subscribing to topic %s", request.topic.c_str());
+      LOGI(LOG_NAME, "Subscribing to topic %s", request.topic.c_str());
       ros::SubscribeOptions ops = ros::SubscribeOptions::create<ShapeShifter>(request.topic, 1, boost::bind(&Server::subscriberCallback, this, subscription, _1), ros::VoidConstPtr(), &(subscription->callback_queue));
       subscription->subscriber = nh_.subscribe(ops);
       subscription->topic = subscription->subscriber.getTopic();
     }
 
     // wait for exactly one callback and reset event pointer
+    LOGI(LOG_NAME, "handleGetMessage callback: waiting for timeout...");
     ros::WallDuration timeout(request.timeout.sec, request.timeout.nsec);
     if (timeout > ros::WallDuration()) {
       // clear callback queue and ignore all messages received if a timeout was specified
@@ -107,18 +133,22 @@ protected:
     }
     subscription->event = MessageEvent();
     subscription->callback_queue.callOne(timeout);
+    LOGI(LOG_NAME, "handleGetMessage callback: waiting over");
 
     ShapeShifter::ConstPtr instance;
     try {
+      LOGI(LOG_NAME, "handleGetMessage callback: getting message from subscription");
       instance = subscription->event.getConstMessage();
+      LOGI(LOG_NAME, "handleGetMessage callback: got message from subscription");
 
     } catch(ros::Exception& e) {
-      ROS_ERROR("Catched exception while handling a request for topic %s: %s", request.topic.c_str(), e.what());
+      LOGI(LOG_NAME, "Catched exception while handling a request for topic %s: %s", request.topic.c_str(), e.what());
       return false;
     }
 
     // any message message has been received?
     if (instance) {
+      LOGI(LOG_NAME, "handleGetMessage callback: message received");
       // fill response
       response.message.topic = subscription->topic;
       response.message.md5sum = instance->getMD5Sum();
@@ -131,21 +161,34 @@ protected:
       subscription->last_message = instance;
 
     } else {
+      LOGI(LOG_NAME, "handleGetMessage callback: NO message received");
       // fill response from last message (but without data)
+      LOGI(LOG_NAME, "handleGetMessage callback: setting topic");
+      LOGI(LOG_NAME, "handleGetMessage callback: setting topic with: %s", subscription->topic.c_str());
       response.message.topic = subscription->topic;
       if (subscription->last_message) {
+        LOGI(LOG_NAME, "handleGetMessage callback: setting md5sum");
+        LOGI(LOG_NAME, "handleGetMessage callback: setting md5sum with: %s", subscription->last_message->getMD5Sum().c_str());
         response.message.md5sum = subscription->last_message->getMD5Sum();
+        LOGI(LOG_NAME, "handleGetMessage callback: setting message type");
+        LOGI(LOG_NAME, "handleGetMessage callback: setting message type with: %s", subscription->last_message->getDataType().c_str());
         response.message.type = subscription->last_message->getDataType();
+        LOGI(LOG_NAME, "handleGetMessage callback: setting message definition");
+        LOGI(LOG_NAME, "handleGetMessage callback: setting message definition with: %s", subscription->last_message->getMessageDefinition().c_str());
         response.message.message_definition = subscription->last_message->getMessageDefinition();
       }
     }
 
+    LOGI(LOG_NAME, "handleGetMessage callback: end of callback, returning true");
     return true;
   }
 
   void subscriberCallback(const SubscriptionInfoPtr& subscription, const MessageEvent& event)
   {
+    LOGI(LOG_NAME, "subscriberCallback");
+    LOGI(LOG_NAME, "subscriberCallback: setting subscription event.");
     subscription->event = event;
+    LOGI(LOG_NAME, "subscriberCallback: end of callback");
   }
 
   bool handlePublishMessage(PublishMessage::Request& request, PublishMessage::Response& response)

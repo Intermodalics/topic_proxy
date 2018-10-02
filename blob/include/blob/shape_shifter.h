@@ -89,7 +89,7 @@ typedef boost::shared_ptr<ShapeShifter const> ShapeShifterConstPtr;
 // When building for Android this throws a compile error:
 // multiple definition of 'blob::operator<<(std::ostream&, blob::ShapeShifter const&)
 // Since it is not used, it is commented for now.
-// TODO: Uncomment and fix build issue for Android.
+// TODO: Uncomment and fix build issue for Android --> Add static
 /*std::ostream& operator<<(std::ostream& s, const ShapeShifter & v)
 {
   ros::message_operations::Printer< ShapeShifter >::stream(s, "", v);
